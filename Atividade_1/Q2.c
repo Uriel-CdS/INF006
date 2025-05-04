@@ -83,8 +83,8 @@ void ordenando_numeros(float numeros[], int numeros_idx){
 }
 
 int main(){
-    FILE *fp_in = fopen("L0Q1.in", "r");
-    FILE *fp_out = fopen("L0Q1.out", "w");
+    FILE *fp_in = fopen("L0Q2.in", "r");
+    FILE *fp_out = fopen("L0Q2.out", "w");
 
     if (fp_in == NULL || fp_out == NULL) {
         perror("Erro ao abrir o arquivo");
