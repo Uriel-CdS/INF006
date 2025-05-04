@@ -45,13 +45,12 @@ void ordenando(int (*vec)[2], int n){
         }
     }
 }
-
-void imprimindo(int (*vec)[2], int n){
+void imprimindo(FILE *saida, int (*vec)[2], int n){
     for(int i = 0; i < n; i++){
-        printf("(%d, %d)", vec[i][0], vec[i][1]);
-        if(i < n - 1) printf(", ");
+        fprintf(saida, "(%d, %d)", vec[i][0], vec[i][1]);
+        if(i < n - 1) fprintf(saida, ", ");
     }
-    printf("\n");
+    fprintf(saida, "\n");
 }
 
 float distancia(int (*vec)[2], int n){
@@ -80,33 +79,44 @@ float distancia_extremos(int (*vec)[2], int n){
 
 int main(){
 
+    FILE *fp_in = fopen("L0Q1.in", "r");
+    FILE *fp_out = fopen("L0Q1.out", "w");
+    if (fp_in == NULL || fp_out == NULL) {
+        perror("Erro ao abrir o arquivo");
+        return EXIT_FAILURE;
+    }
+
     char str[TAM_STR];
     int vetor[TAM_COORD][2];
 
-    printf("Informe as coordenadas: ");
-    scanf(" %[^\n]", str);
-    printf("\n");
+    if (fgets(str, TAM_STR, fp_in) == NULL) {
+        fprintf(stderr, "Erro ao ler a linha do arquivo.\n");
+        return 1;
+    }
 
     int n = procurando(str, vetor);
 
     if (n == 0) {
-        printf("Nenhuma coordenada válida encontrada.\n");
+        fprintf(fp_out, "Nenhuma coordenada válida encontrada.\n");
         return 1;
     }
 
-    printf(">> Coordenadas na sequencia original: ");
-    imprimindo(vetor, n);
+    fprintf(fp_out, ">> Coordenadas na sequencia original: ");
+    // você pode ajustar a função imprimindo para escrever no arquivo
+    imprimindo(fp_out, vetor, n);
 
     ordenando(vetor, n);
 
-    printf(">> coordenadas na sequencia ordenado: ");
-    imprimindo(vetor, n);
+    fprintf(fp_out, ">> Coordenadas na sequencia ordenada: ");
+    imprimindo(fp_out, vetor, n);
 
     float distance = distancia(vetor, n);
-    printf(">> Distance: %.2f\n", distance);
+    fprintf(fp_out, ">> Distance: %.2f\n", distance);
 
     float shortcut = distancia_extremos(vetor, n);
-    printf(">> shortcut: %.2f\n", shortcut);
+    fprintf(fp_out, ">> Shortcut: %.2f\n", shortcut);
 
+    fclose(fp_in);
+    fclose(fp_out);
     return 0;
 }
