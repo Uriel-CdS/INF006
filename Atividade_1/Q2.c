@@ -1,133 +1,150 @@
+// Uriel e Jonathas
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
 
-#define MAX_TAM 50
-#define MAX_TAM_STRING 500
-#define MAX_PALAV 100 
+#define MAX_LINE 1024
+#define MAX_TOKENS 128
 
-int procurando_palavras(char string[], char palavras[][MAX_TAM]){
-    int i = 0, palavra_idx = 0, letra_idx = 0; 
-    
-    while (string[i] != '\0'){
-        if (isalpha(string[i])) {
-            palavras[palavra_idx][letra_idx++] = string[i];
-        } else if (letra_idx > 0) {
-            palavras[palavra_idx][letra_idx] = '\0';
-            palavra_idx++;
-            letra_idx = 0;
-        }
-        i++;
-    }
+typedef struct {
+    double x, y;
+    double dist;
+    char original[64];
+} Point;
 
-    if (letra_idx > 0) {
-        palavras[palavra_idx][letra_idx] = '\0';
-        palavra_idx++;
-    }
-
-    return palavra_idx;
+int is_integer(const char *s) {
+    char *end;
+    strtol(s, &end, 10);
+    return *end == '\0';
 }
 
-void ordenando_palavras(char palavras[][MAX_TAM], int palavra_idx){
-    char interm[MAX_TAM];
-
-    for(int i = 0; i < palavra_idx - 1; i++){
-        for(int j = i + 1; j < palavra_idx; j++){
-            if(strcmp(palavras[i], palavras[j]) > 0) {
-                strcpy(interm, palavras[i]);
-                strcpy(palavras[i], palavras[j]);
-                strcpy(palavras[j], interm);
-            }
-        }
-    }
+int is_float(const char *s) {
+    char *end;
+    strtod(s, &end);
+    return *end == '\0' && strchr(s, '.');
 }
 
-int procurando_numeros(char string[], float numeros[]){
-    int i = 0, qtd = 0, temp_idx = 0;
-    char num_encontrados[MAX_TAM];
-
-    while(string[i] != '\0') {
-        if(isdigit(string[i]) || string[i] == '.' || string[i] == '-'){
-            num_encontrados[temp_idx++] = string[i];
-        } else if (temp_idx > 0) {
-            num_encontrados[temp_idx] = '\0';
-            numeros[qtd++] = atof(num_encontrados);
-            temp_idx = 0;
-
-            if (qtd >= MAX_TAM_STRING) break;
-        }
-        i++;
-    }
-
-    if(temp_idx > 0 && qtd < MAX_TAM_STRING){
-        num_encontrados[temp_idx] = '\0';
-        numeros[qtd++] = atof(num_encontrados);
-    }
-
-    return qtd;
+int is_point(const char *s, double *x, double *y, char *original) {
+    if (s[0] != '(' || s[strlen(s) - 1] != ')') return 0;
+    char temp[64];
+    strncpy(temp, s + 1, strlen(s) - 2);
+    temp[strlen(s) - 2] = '\0';
+    char *comma = strchr(temp, ',');
+    if (!comma) return 0;
+    *comma = '\0';
+    char *xstr = temp;
+    char *ystr = comma + 1;
+    char *end1, *end2;
+    *x = strtod(xstr, &end1);
+    *y = strtod(ystr, &end2);
+    if (*end1 || *end2) return 0;
+    strcpy(original, s);
+    return 1;
 }
 
-void ordenando_numeros(float numeros[], int numeros_idx){
-    float interm = 0;
-
-    for(int i = 0; i < numeros_idx; i++){
-        for(int j = i + 1; j < numeros_idx; j++){
-            if(numeros[i] > numeros[j]){
-                interm = numeros[j];
-                numeros[j] = numeros[i];
-                numeros[i] = interm;
-            }
-        }
-    }
+int cmp_str(const void *a, const void *b) {
+    return strcmp((const char *)a, (const char *)b);
 }
 
-int main(){
+int cmp_int(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+int cmp_double(const void *a, const void *b) {
+    double diff = *(double *)a - *(double *)b;
+    if (diff < 0) return -1;
+    else if (diff > 0) return 1;
+    else return 0;
+}
+
+int cmp_point(const void *a, const void *b) {
+    double d1 = ((Point *)a)->dist;
+    double d2 = ((Point *)b)->dist;
+    if (d1 < d2) return -1;
+    else if (d1 > d2) return 1;
+    else return 0;
+}
+
+int main() {
     FILE *fp_in = fopen("L0Q2.in", "r");
     FILE *fp_out = fopen("L0Q2.out", "w");
-
-    if (fp_in == NULL || fp_out == NULL) {
-        perror("Erro ao abrir o arquivo");
+    
+    if (!fp_in || !fp_out) {
+        perror("Erro ao abrir arquivo");
         return 1;
     }
 
-    char string[MAX_TAM_STRING];
-    char palavras[MAX_PALAV][MAX_TAM];
-    float numeros[MAX_TAM_STRING];
+    char line[MAX_LINE];
 
-    if (fgets(string, MAX_TAM_STRING, fp_in) == NULL) {
-        fprintf(fp_out, "Erro ao ler a linha do arquivo.\n");
-        return 1;
-    }
+    while (fgets(line, sizeof(line), fp_in)) {
+        line[strcspn(line, "\n")] = '\0'; 
 
-    int qtd_palavras = procurando_palavras(string, palavras);
-    ordenando_palavras(palavras, qtd_palavras);
-
-    fprintf(fp_out, "Lista ordenada\n");
-    fprintf(fp_out, "char: ");
-    for(int i = 0; i < qtd_palavras; i++){
-        fprintf(fp_out, "%s", palavras[i]);
-        if(i < qtd_palavras - 1){
-            fprintf(fp_out, ", ");
-        } else{
-            fprintf(fp_out, ".\n");
+        char *tokens[MAX_TOKENS];
+        int num_tokens = 0;
+        char *token = strtok(line, " ");
+        while (token) {
+            tokens[num_tokens++] = token;
+            token = strtok(NULL, " ");
         }
-    }
 
-    int qtd_numeros = procurando_numeros(string, numeros);
-    ordenando_numeros(numeros, qtd_numeros);
+        char *strings[MAX_TOKENS];
+        int ints[MAX_TOKENS], num_ints = 0;
+        double floats[MAX_TOKENS];
+        int num_str = 0, num_float = 0;
+        Point points[MAX_TOKENS];
+        int num_points = 0;
 
-    fprintf(fp_out, "int/float: ");
-    for(int i = 0; i < qtd_numeros; i++){
-        fprintf(fp_out, "%.2f", numeros[i]);
-        if(i < qtd_numeros - 1){
-            fprintf(fp_out, ", ");
-        } else{
-            fprintf(fp_out, ".\n");
+        for (int i = 0; i < num_tokens; i++) {
+            double x, y;
+            char original[64];
+            if (is_point(tokens[i], &x, &y, original)) {
+                points[num_points].x = x;
+                points[num_points].y = y;
+                points[num_points].dist = sqrt(x * x + y * y);
+                strcpy(points[num_points].original, original);
+                num_points++;
+            } else if (is_integer(tokens[i])) {
+                ints[num_ints++] = atoi(tokens[i]);
+            } else if (is_float(tokens[i])) {
+                floats[num_float++] = atof(tokens[i]);
+            } else {
+                strings[num_str++] = tokens[i];
+            }
         }
+
+        qsort(strings, num_str, sizeof(char *), cmp_str);
+        qsort(ints, num_ints, sizeof(int), cmp_int);
+        qsort(floats, num_float, sizeof(double), cmp_double);
+        qsort(points, num_points, sizeof(Point), cmp_point);
+        
+        fprintf(fp_out, "str:");
+        for (int i = 0; i < num_str; i++) {
+            fprintf(fp_out, "%s%s", (i > 0 ? " " : ""), strings[i]);
+        }
+
+        fprintf(fp_out, " int:");
+        for (int i = 0; i < num_ints; i++) {
+            fprintf(fp_out, "%s%d", (i > 0 ? " " : ""), ints[i]);
+        }
+
+        fprintf(fp_out, " float:");
+        for (int i = 0; i < num_float; i++) {
+            fprintf(fp_out, "%s%.15g", (i > 0 ? " " : ""), floats[i]);
+        }
+
+        fprintf(fp_out, " p:");
+        for (int i = 0; i < num_points; i++) {
+            fprintf(fp_out, "%s%s", (i > 0 ? " " : ""), points[i].original);
+        }
+
+        fprintf(fp_out, "\n");
     }
 
     fclose(fp_in);
     fclose(fp_out);
+
     return 0;
 }
