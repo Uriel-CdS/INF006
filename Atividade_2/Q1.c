@@ -1,9 +1,12 @@
+//Jonathas Gabriel e Uriel
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 
 #define MAX 100
+#define MAX_LINE 1000
 
 typedef struct {
     int numeros[MAX];
@@ -94,23 +97,35 @@ void ordenar_lista_por_soma(Lista lista[], int total) {
 }
 
 int main() {
-    char str[1000];
+    FILE* fp_in = fopen("L1Q1.in", "r");
+    FILE* fp_out = fopen("L1Q1.out", "w");
 
-    printf("Digite: ");
-    scanf(" %[^\n]", str);
+    if (!fp_in || !fp_out) {
+        perror("Erro ao abrir arquivos");
+        return 1;
+    }
 
-    int total_listas = capturar_lista(str);
+    char linha[MAX_LINE];
 
-    total_listas = remover_duplicadas(listas, total_listas);
+    while (fgets(linha, sizeof(linha), fp_in)) {
+        total_listas = 0; // zera para cada linha processada
 
-    ordenar_lista_por_soma(listas, total_listas);
+        int total = capturar_lista(linha);
 
-    for (int i = 0; i < total_listas; i++) {
-        printf("start");
-        for (int j = 0; j < listas[i].qtd; j++) {
-            printf(" %d", listas[i].numeros[j]);
+        total = remover_duplicadas(listas, total);
+
+        ordenar_lista_por_soma(listas, total);
+
+        for (int i = 0; i < total; i++) {
+            fprintf(fp_out, "start");
+            for (int j = 0; j < listas[i].qtd; j++) {
+                fprintf(fp_out, " %d", listas[i].numeros[j]);
+            }
+            fprintf(fp_out, "\n");
         }
     }
 
+    fclose(fp_in);
+    fclose(fp_out);
     return 0;
 }
